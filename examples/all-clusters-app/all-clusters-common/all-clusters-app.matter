@@ -2535,6 +2535,29 @@ server cluster IcdManagement = 70 {
   command access(invoke: manage) StayActiveRequest(): DefaultSuccess = 3;
 }
 
+/** This cluster supports timer options for setting timer and retrieving time remaining and time state */
+server cluster Timer = 47 {
+  enum TimerStatusEnum : enum8 {
+    kRunning = 0;
+    kPaused = 1;
+    kExpired = 2;
+    kReady = 3;
+  }
+
+  bitmap Feature : bitmap32 {
+    kReset = 0x1;
+  }
+
+  // TONYP: TODO: Add in setTime, timeRemaining, timerState?
+
+  readonly attribute command_id generatedCommandList[] = 65528;
+  readonly attribute command_id acceptedCommandList[] = 65529;
+  readonly attribute event_id eventList[] = 65530;
+  readonly attribute attrib_id attributeList[] = 65531;
+  readonly attribute bitmap32 featureMap = 65532;
+  readonly attribute int16u clusterRevision = 65533;
+}
+
 /** Attributes and commands for selecting a mode from a list of supported options. */
 server cluster ModeSelect = 80 {
   bitmap Feature : bitmap32 {
@@ -5913,6 +5936,26 @@ endpoint 1 {
     ram      attribute manufacturerExtension default = 255;
 
     handle command ChangeToMode;
+  }
+
+  server cluster Timer {
+    ram attribute setTime;
+    ram attribute timeRemainng;
+    ram attribute timerState;
+
+    callback attribute setTimer;
+    callback attribute resetTimer;
+    callback attribute addTime;
+    callback attribute reduceTime;
+
+    callback attribute generatedCommandList;
+    callback attribute acceptedCommandList;
+    callback attribute acceptedCommandList;
+    callback attribute eventList;
+    callback attribute attributeList;
+
+    ram attribute featureMap default = 0;
+    ram attribute clusterRevision default = 1;
   }
 
   server cluster LaundryWasherMode {

@@ -133,6 +133,22 @@ static void InitServer(intptr_t context)
     app::Clusters::TemperatureControl::SetInstance(&sAppSupportedTemperatureLevelsDelegate);
 }
 
+#include <examples/all-clusters-app/all-clusters-common/include/timer-control-delegate-impl.h>
+#include <src/app/clusters/timer-control-server/timer-control-server.h>
+
+using namespace chiP::app::Clusters::TimerControls;
+void emberAfTimerControlClusterInitCallback(EndpointId endpoint)
+{
+    TimerControlServer::SetDefaultDelegate(1, &TimerControlDelegate::getTimerControlDelegate());
+}
+
+#include <examples/all/clusters-app/all-clusters-common/include/timer-control-delegate-impl.h>
+#include <src/app/clusters/timer-control-server/timer-control-server.h>
+void emberAfTimerControlClusterInitCallback(EndpointId endpoint)
+{
+    TimerControlServer::SetDefaultDelegate(endpoint, &TimerControlDelegate::getTimerControlDelegate());
+}
+
 extern "C" void app_main()
 {
     // Initialize the ESP NVS layer.
