@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <app/clusters/laundry-washer-controls-server/laundry-washer-controls-delegate.h>
-#include <app/clusters/laundry-washer-controls-server/laundry-washer-controls-server.h>
+#include <app/clusters/timer-control-server/timer-control-delegate.h>
+#include <app/clusters/timer-control-server/timer-control-server.h>
 #include <app/util/af.h>
 #include <app/util/config.h>
 #include <cstring>
@@ -35,11 +35,11 @@ namespace TimerControl {
 
 class TimerControlDelegate : public Delegate
 {
-    static const TimerStatusEnum supportedTimerStates[];
+    static const Timer::TimerStatusEnum supportedTimerStates[];
     static TimerControlDelegate instance;
 
 public:
-    CHIP_ERROR GetTimerStateAtIndex(size_t index, TimerStatusEnum & timerState);
+    CHIP_ERROR GetTimerStateAtIndex(size_t index, Timer::TimerStatusEnum & timerState);
 
     TimerControlDelegate()  = default;
     ~TimerControlDelegate() = default;
@@ -47,7 +47,7 @@ public:
     static inline TimerControlDelegate & getTimerControlDelegate() { return instance; }
 };
 
-} // namespace TimerControls
+} // namespace TimerControl
 } // namespace Clusters
 } // namespace app
 } // namespace chip

@@ -19,8 +19,8 @@
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
 
-#include "cooktop-delegate.h"
-#include "cooktop-server.h"
+#include "timer-control-delegate.h"
+#include "timer-control-server.h"
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app-common/zap-generated/callback.h>
 #include <app-common/zap-generated/cluster-objects.h>
@@ -40,24 +40,25 @@ using namespace chip::app;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::Timer;
 using namespace chip::app::Clusters::Timer::Attributes;
+using namespace chip::app::Clusters::TimerControl;
 using chip::Protocols::InteractionModel::Status;
 
-static constexpr size_t kCooktopDelegateTableSize =
-    EMBER_AF_COOKTOP_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
+static constexpr size_t kTimerDelegateTableSize =
+    EMBER_AF_TIMER_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
 
 // -----------------------------------------------------------------------------
 // Delegate Implementation
 //
 namespace {
-Delegate * gDelegateTable[kCooktopDelegateTableSize] = { nullptr };
+Delegate * gDelegateTable[kTimerDelegateTableSize] = { nullptr };
 }
 
 namespace {
 Delegate * GetDelegate(EndpointId endpoint)
 {
-    uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Cooktop::Id,
-                                                       EMBER_AF_COOKTOP_CLUSTER_SERVER_ENDPOINT_COUNT);
-    return (ep >= kCooktopDelegateTableSize ? nullptr : gDelegateTable[ep]);
+    uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Timer::Id,
+                                                       EMBER_AF_TIMER_CLUSTER_SERVER_ENDPOINT_COUNT);
+    return (ep >= kTimerDelegateTableSize ? nullptr : gDelegateTable[ep]);
 }
 
 } // namespace
@@ -69,10 +70,10 @@ TimerControlServer TimerControlServer::sInstance;
  *********************************************************/
 void TimerControlServer::SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
-    uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Cooktop::Id,
-                                                       EMBER_AF_COOKTOP_CLUSTER_SERVER_ENDPOINT_COUNT);
+    uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Timer::Id,
+                                                       EMBER_AF_TIMER_CLUSTER_SERVER_ENDPOINT_COUNT);
     // if endpoint is found
-    if (ep < kCooktopDelegateTableSize)
+    if (ep < kTimerDelegateTableSize)
     {
         gDelegateTable[ep] = delegate;
     }
@@ -83,13 +84,13 @@ TimerControlServer & TimerControlServer::Instance()
     return sInstance;
 }
 
-EmberAfStatus TimerControlServer::SetTimer(EndpointId endpointId, uint32_t & newTime)
+EmberAfStatus TimerControlServer::SetTimer(EndpointId endpointId, uint32_t newTime)
 {
     EmberAfStatus res = SetTime::Set(endpointId, newTime);
     if ((res == EMBER_ZCL_STATUS_SUCCESS)) {
         res = TimeRemaining::Set(endpointId, newTime);
         if (res == EMBER_ZCL_STATUS_SUCCESS) {
-            res = TimerState::Set(endpointId, TimerStatusEnum::Running);
+            res = TimerState::Set(endpointId, TimerStatusEnum::kRunning);
         }
     }
 
@@ -99,14 +100,14 @@ EmberAfStatus TimerControlServer::SetTimer(EndpointId endpointId, uint32_t & new
 EmberAfStatus TimerControlServer::ResetTimer(EndpointId endpointId)
 {
     uint32_t time;
-    EmberAfStatus res = SetTime::Get(endpointId, time);
+    EmberAfStatus res = SetTime::Get(endpointId, &time);
 
     if (res == EMBER_ZCL_STATUS_SUCCESS) {
-        res = SetTime::Set(endpointId, newTime);
+        res = SetTime::Set(endpointId, time);
 	if ((res == EMBER_ZCL_STATUS_SUCCESS)) {
-	    res = TimeRemaining::Set(endpointId, newTime);
+	    res = TimeRemaining::Set(endpointId, time);
 	    if (res == EMBER_ZCL_STATUS_SUCCESS) {
-                res = TimerState::Set(endpointId, TimerStatusEnum::Running);
+                res = TimerState::Set(endpointId, TimerStatusEnum::kRunning);
 	    }
 	}
     }
@@ -114,30 +115,30 @@ EmberAfStatus TimerControlServer::ResetTimer(EndpointId endpointId)
     return res;
 }
 
-EmberAfStatus TimerControlServer::AddTime(EndpointId endpointId, uint32_t & newTime)
+EmberAfStatus TimerControlServer::AddTime(EndpointId endpointId, uint32_t newTime)
 {
     TimerStatusEnum state;
     uint32_t time = 0;
 
-    EmberAfStatus res = TimerState::Get(endpointId, state);
-    if ((res == EMBER_ZCL_STATUS_SUCCESS) && state != TimerStatusEnum::Expired)
+    EmberAfStatus res = TimerState::Get(endpointId, &state);
+    if ((res == EMBER_ZCL_STATUS_SUCCESS) && state != TimerStatusEnum::kExpired)
     {
-        if ((res = TimeRemaining::Get(endpointId, time)) == EMBER_ZCL_STATUS_SUCCESS)
+        if ((res = TimeRemaining::Get(endpointId, &time)) == EMBER_ZCL_STATUS_SUCCESS)
              res = TimeRemaining::Set(endpointId, time + newTime);
     }
 
     return res;
 }
 
-EmberAfStatus TimerControlServer::ReduceTime(EndpointId endpointId, uint32_t & newTime)
+EmberAfStatus TimerControlServer::ReduceTime(EndpointId endpointId, uint32_t newTime)
 {
     TimerStatusEnum state;
     uint32_t time = 0;
 
-    EmberAfStatus res = TimerState::Get(endpointId, state);
-    if ((res == EMBER_ZCL_STATUS_SUCCESS) && state != TimerStatusEnum::Expired)
+    EmberAfStatus res = TimerState::Get(endpointId, &state);
+    if ((res == EMBER_ZCL_STATUS_SUCCESS) && state != TimerStatusEnum::kExpired)
     {
-         if ((res = TimeRemaining::Get(endpointId, time)) == EMBER_ZCL_STATUS_SUCCESS)
+         if ((res = TimeRemaining::Get(endpointId, &time)) == EMBER_ZCL_STATUS_SUCCESS)
              res = TimeRemaining::Set(endpointId, time - newTime);
     }
 
@@ -147,19 +148,19 @@ EmberAfStatus TimerControlServer::ReduceTime(EndpointId endpointId, uint32_t & n
 EmberAfStatus TimerControlServer::GetSetTime(EndpointId endpointId,
                                         uint32_t & setTime)
 {
-    return SetTime::Get(endpointId, setTime);
+    return SetTime::Get(endpointId, &setTime);
 }
 
 EmberAfStatus TimerControlServer::GetRemainingTime(EndpointId endpointId,
                                               uint32_t & remainingTime)
 {
-     return TimeRemaining.get(endpointId, remainingTime);
+     return TimeRemaining::Get(endpointId, &remainingTime);
 }
 
 EmberAfStatus TimerControlServer::GetTimerState(EndpointId endpointId,
                                            TimerStatusEnum & state)
 {
-    return TimerStatusEnum::Get(endpointId, state);
+    return TimerStatusEnum::Get(endpointId, &state);
 }
 
 /**********************************************************
@@ -167,7 +168,7 @@ EmberAfStatus TimerControlServer::GetTimerState(EndpointId endpointId,
  *********************************************************/
 CHIP_ERROR TimerControlServer::Read(const ConcreteReadAttributePath & aPath, AttributeValueEncoder & aEncoder)
 {
-    if (aPath.mClusterId != Cooktop::Id)
+    if (aPath.mClusterId != Timer::Id)
     {
         // We shouldn't have been called at all.
         return CHIP_ERROR_INVALID_ARGUMENT;
@@ -210,6 +211,6 @@ CHIP_ERROR TimerControlServer::ReadTimerState(const ConcreteReadAttributePath & 
 
 void MatterCooktopPluginServerInitCallback()
 {
-    TimerControlServer & timerControlServer = TimerControlServer::getInstance();
+    TimerControl::TimerControlServer & timerControlServer = TimerControl::TimerControlServer::Instance();
     registerAttributeAccessOverride(&timerControlServer);
 }

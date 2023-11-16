@@ -22,16 +22,16 @@
 using namespace chip;
 using namespace chip::app::Clusters::TimerControls;
 
-const TimerStatusEnum TimerControlDelegate::supportedTimerStates[] = {
-    TimerStatusEnum::kRunning,
-    TimerstatusEnum::kPaused,
-    TimerStatusEnum::kExpired,
-    TimerStatuSEnum::kReady
+const Timer::TimerStatusEnum TimerControlDelegate::supportedTimerStates[] = {
+    Timer::TimerStatusEnum::kRunning,
+    Timer::TimerstatusEnum::kPaused,
+    Timer::TimerStatusEnum::kExpired,
+    Timer::TimerStatuSEnum::kReady
 };
 
 TimerControlDelegate TimerControlDelegate::instance;
 
-CHIP_ERROR TimerControlDelegate::GetTimerStateAtIndex(size_t index, TimerStatusEnum & timerState)
+CHIP_ERROR TimerControlDelegate::GetTimerStateAtIndex(size_t index, Timer::TimerStatusEnum & timerState)
 {
     if (index >= ArraySize(supportedTimerStates))
     {
